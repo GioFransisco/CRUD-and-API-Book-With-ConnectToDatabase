@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"simple-web-app-with-db/config"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,11 +22,14 @@ var db = config.ConnectDB()
 func main() {
 	router := gin.Default()
 
-	// route for create new book
+	// Route for create new book
 	router.POST("/books", createBook)
 
 	// Route for display all books
 	router.GET("/books", getAllBooks)
+
+	// Route for display book by id
+	router.GET("/books/:id", getBookById)
 
 	router.Run(":8080")
 }
@@ -99,6 +103,35 @@ func getAllBooks(c *gin.Context) {
 		c.JSON(http.StatusOK, matchedBook)
 	}else {
 		c.JSON(http.StatusNotFound, gin.H{"error" : "Book not found"})
+	}
+
+}
+
+// Handler to get book by id
+func getBookById(c *gin.Context) {
+	idParams := c.Param("id")
+
+	bookID, err := strconv.Atoi(idParams)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "Invalid book id"})
+		return
+	}
+
+	query := "SELECT * FROM mst_book WHERE id = $1"
+
+	var book Book
+
+	// Scans a row of books containing matching id
+	err = db.QueryRow(query, bookID).Scan(&book.ID, &book.Title, 
+	&book.Author, &book.ReleaseYear, &book.Pages)
+	
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error" : "Book not found"})
+	}else {
+		if book.ID == bookID {
+			c.JSON(http.StatusOK, book)
+			return
+		}
 	}
 
 }
