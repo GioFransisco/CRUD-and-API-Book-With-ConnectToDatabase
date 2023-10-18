@@ -31,6 +31,9 @@ func main() {
 	// Route for display book by id
 	router.GET("/books/:id", getBookById)
 
+	// Route for update book by id
+	router.PUT("/books/:id", updateBookById)
+
 	router.Run(":8080")
 }
 
@@ -134,4 +137,8 @@ func getBookById(c *gin.Context) {
 		}
 	}
 
+}
+
+func updateBookById(c *gin.Context) {
+	
 }
