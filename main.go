@@ -81,7 +81,7 @@ func getAllBooks(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error" : "Internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error" : "internal server error"})
 		return		
 	}
 	defer rows.Close()
@@ -93,7 +93,7 @@ func getAllBooks(c *gin.Context) {
 		err := rows.Scan(&book.ID, &book.Title, &book.Author,
 		&book.ReleaseYear, &book.Pages)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error" : "Internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error" : "internal server error"})
 			return
 		}
 
@@ -105,7 +105,7 @@ func getAllBooks(c *gin.Context) {
 	if len(matchedBook) > 0 {
 		c.JSON(http.StatusOK, matchedBook)
 	}else {
-		c.JSON(http.StatusNotFound, gin.H{"error" : "Book not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error" : "book not found"})
 	}
 
 }
@@ -116,7 +116,7 @@ func getBookById(c *gin.Context) {
 
 	bookID, err := strconv.Atoi(idParams)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error" : "Invalid book id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "invalid book id"})
 		return
 	}
 
@@ -129,7 +129,7 @@ func getBookById(c *gin.Context) {
 	&book.Author, &book.ReleaseYear, &book.Pages)
 	
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error" : "Book not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error" : "book not found"})
 	}else {
 		if book.ID == bookID {
 			c.JSON(http.StatusOK, book)
@@ -140,5 +140,42 @@ func getBookById(c *gin.Context) {
 }
 
 func updateBookById(c *gin.Context) {
-	
+	idParams := c.Param("id")
+
+	bookID, err := strconv.Atoi(idParams)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "invalid book id"})
+		return
+	}
+
+	var updatedBook Book
+
+	err = c.ShouldBind(&updatedBook)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error" : err.Error()})
+		return
+	}
+
+	var book Book
+	query := "SELECT id FROM mst_book WHERE id = $1"
+	err = db.QueryRow(query, bookID).Scan(&book.ID)
+	if err != nil {
+		// result must => booknotfound (404)
+		c.JSON(http.StatusNotFound, gin.H{"error" : "book not found"})
+		return
+	}
+		
+	if book.ID == bookID {
+		query = "UPDATE mst_book SET title = $2, author = $3, release_year = $4, pages = $5 WHERE id = $1"
+		_, err = db.Exec(query, bookID, &updatedBook.Title, &updatedBook.Author, &updatedBook.ReleaseYear, &updatedBook.Pages)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error" : "internal server error"})
+			return
+		}else {
+			updatedBook.ID = bookID
+			c.JSON(http.StatusOK, updatedBook)
+			return
+		}
+	}
+
 }
