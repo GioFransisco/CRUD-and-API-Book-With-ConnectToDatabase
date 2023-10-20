@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	// "fmt"
 	"net/http"
 	"simple-web-app-with-db/config"
 	"strconv"
@@ -35,6 +35,9 @@ func main() {
 
 	// Route for update book by id
 	router.PUT("/books/:id", updateBookById)
+
+	// Route for delete book by id
+	router.DELETE("/books/:id", deleteBookById)
 
 	router.Run(":8080")
 }
@@ -191,9 +194,42 @@ func updateBookById(c *gin.Context) {
 		}
 		updatedBook.ID = bookID
 		c.JSON(http.StatusOK, book)
-		fmt.Println("update book : ", book)
+		// fmt.Println("update book : ", book)
 	}
 
 }
 
-// task : bagaimana cara data yang diisikan tidak di update jika bernilai string kosong
+func deleteBookById(c *gin.Context)  {
+	idParams := c.Param("id")
+
+	bookID, err := strconv.Atoi(idParams)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "invalid book id"})
+		return
+	}
+
+	var book Book
+	query := "SELECT id, title, author, release_year, pages FROM mst_book WHERE id = $1"
+	err = db.QueryRow(query, bookID).Scan(&book.ID, &book.Title, 
+	&book.Author, &book.ReleaseYear, &book.Pages)
+
+	if book.ID != bookID {
+		c.JSON(http.StatusNotFound, gin.H{"error" : "book not found"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error" : "internal server error"})
+		return
+	}
+
+	query = "DELETE FROM mst_book WHERE id = $1"
+	_, err = db.Exec(query, bookID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error" : "gagal menghapus buku"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message" : "buku berhasil dihapus"})
+	
+}
