@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"simple-web-app-with-db/config"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -157,25 +159,41 @@ func updateBookById(c *gin.Context) {
 	}
 
 	var book Book
-	query := "SELECT id FROM mst_book WHERE id = $1"
-	err = db.QueryRow(query, bookID).Scan(&book.ID)
+	query := "SELECT id, title, author, release_year, pages FROM mst_book WHERE id = $1"
+	err = db.QueryRow(query, bookID).Scan(&book.ID, &book.Title, 
+	&book.Author, &book.ReleaseYear, &book.Pages)
+	// fmt.Println("book in select : ", book)
 	if err != nil {
-		// result must => booknotfound (404)
 		c.JSON(http.StatusNotFound, gin.H{"error" : "book not found"})
 		return
 	}
 		
 	if book.ID == bookID {
+		// check if the object have a value or not
+		if strings.TrimSpace(updatedBook.Title) != "" {
+			book.Title = updatedBook.Title
+		}
+		if strings.TrimSpace(updatedBook.Author) != "" {
+			book.Author = updatedBook.Author
+		}
+		if strings.TrimSpace(updatedBook.ReleaseYear) != "" {
+			book.ReleaseYear = updatedBook.ReleaseYear
+		}
+		if updatedBook.Pages != 0 {
+			book.Pages = updatedBook.Pages
+		}
+		// fmt.Println("book in condition : ", book)
 		query = "UPDATE mst_book SET title = $2, author = $3, release_year = $4, pages = $5 WHERE id = $1"
-		_, err = db.Exec(query, bookID, &updatedBook.Title, &updatedBook.Author, &updatedBook.ReleaseYear, &updatedBook.Pages)
+		_, err = db.Exec(query, bookID, &book.Title, &book.Author, &book.ReleaseYear, &book.Pages)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error" : "internal server error"})
 			return
-		}else {
-			updatedBook.ID = bookID
-			c.JSON(http.StatusOK, updatedBook)
-			return
 		}
+		updatedBook.ID = bookID
+		c.JSON(http.StatusOK, book)
+		fmt.Println("update book : ", book)
 	}
 
 }
+
+// task : bagaimana cara data yang diisikan tidak di update jika bernilai string kosong
